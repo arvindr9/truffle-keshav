@@ -5,16 +5,19 @@ interface AppProps {
   accessToken: string | null;
 }
 
+interface QueueItem {
+  userName: string;
+  message: string;
+}
+
 const App: React.FC<AppProps> = ({ accessToken }) => {
   const [userName, setUserName] = useState("");
-  const [isCreator, setIsCreator] = useState(false);
   const [text, setText] = useState("");
-  const [queue, setQueue] = useState<string[]>([]);
+  const [queue, setQueue] = useState<QueueItem[]>([]);
   const [isPaused, setIsPaused] = useState(false);
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [selectedVoice, setSelectedVoice] = useState<SpeechSynthesisVoice | null>(null);
   const textBoxRef = useRef<HTMLInputElement>(null);
-  const synthRef = useRef<SpeechSynthesisUtterance | null>(null);
 
   useEffect(() => {
     const fetchUserInfo = async () => {
@@ -47,7 +50,6 @@ const App: React.FC<AppProps> = ({ accessToken }) => {
 
       if (orgMember) {
         const roles = orgMember.roles.map((role: { slug: string }) => role.slug);
-        setIsCreator(roles.includes('admin') || roles.includes('moderator'));
         setUserName(orgMember.name);
       }
     };
@@ -65,7 +67,6 @@ const App: React.FC<AppProps> = ({ accessToken }) => {
       }
     };
 
-    // Fetch voices immediately and also set an event listener for when voices change
     fetchVoices();
     window.speechSynthesis.onvoiceschanged = fetchVoices;
   }, []);
@@ -86,46 +87,38 @@ const App: React.FC<AppProps> = ({ accessToken }) => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (text.trim()) {
-      setQueue([...queue, text.trim()]);
+      setQueue([...queue, { userName, message: text.trim() }]);
       setText("");
     }
   };
 
   const handleSkip = () => {
-    if (synthRef.current) {
-      synthRef.current.onend = null; // Remove the onend event listener
-      window.speechSynthesis.cancel(); // Cancel the current speech synthesis
-      setQueue((prevQueue) => prevQueue.slice(1)); // Remove the current text from the queue
-    }
+    window.speechSynthesis.cancel();
+    setQueue((prevQueue) => prevQueue.slice(1));
   };
 
   const handlePause = () => {
     setIsPaused(!isPaused);
-    if (!isPaused) {
-      window.speechSynthesis.pause();
-    } else {
+    if (isPaused) {
       window.speechSynthesis.resume();
+    } else {
+      window.speechSynthesis.pause();
     }
-  };
-
-  const speakText = (text: string) => {
-    const synth = window.speechSynthesis;
-    const utterance = new SpeechSynthesisUtterance(text);
-    if (selectedVoice) {
-      utterance.voice = selectedVoice;
-    }
-    utterance.onend = () => {
-      setQueue((prevQueue) => prevQueue.slice(1));
-    };
-    synth.speak(utterance);
-    synthRef.current = utterance;
   };
 
   useEffect(() => {
-    if (!isPaused && queue.length > 0 && !window.speechSynthesis.speaking) {
-      speakText(queue[0]);
+    if (queue.length > 0 && !isPaused) {
+      const currentItem = queue[0];
+      const utterance = new SpeechSynthesisUtterance(`${currentItem.userName} said ${currentItem.message}`);
+      if (selectedVoice) {
+        utterance.voice = selectedVoice;
+      }
+      window.speechSynthesis.speak(utterance);
+      utterance.onend = () => {
+        setQueue((prevQueue) => prevQueue.slice(1));
+      };
     }
-  }, [queue, isPaused]);
+  }, [queue, isPaused, selectedVoice]);
 
   return (
     <div>
@@ -148,18 +141,20 @@ const App: React.FC<AppProps> = ({ accessToken }) => {
         <span>{text.length}/100</span>
         <button type="submit">Submit</button>
       </form>
-      {isCreator && (
-        <div>
-          <h2>Queue</h2>
-          <ul>
-            {queue.map((item, index) => (
-              <li key={index}>{item}</li>
-            ))}
-          </ul>
-          <button onClick={handleSkip}>Skip</button>
-          <button onClick={handlePause}>{isPaused ? 'Resume' : 'Pause'}</button>
-        </div>
-      )}
+      <div>
+        <h2>Queue</h2>
+        <ul>
+          {queue.map((item, index) => (
+            <li key={index}>{item.userName}: {item.message}</li>
+          ))}
+        </ul>
+        {(userName === 'admin' || userName === 'creator') && (
+          <div>
+            <button onClick={handleSkip}>Skip</button>
+            <button onClick={handlePause}>{isPaused ? 'Resume' : 'Pause'}</button>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
