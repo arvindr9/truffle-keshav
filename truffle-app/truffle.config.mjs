@@ -6,7 +6,7 @@ export default {
     {
       slug: "my-embed",
       url: "http://localhost:5173",
-      contentPageType: "youtubeLive",
+      contentPageType: "youtube",
       iconUrl: "https://cdn.bio/assets/icons/global/light/add_on.svg",
       windowProps: {
         title: "My First Embed",

@@ -1,19 +1,14 @@
-import { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import "./App.css";
 
 interface AppProps {
   accessToken: string | null;
 }
 
-interface QueueItem {
-  userName: string;
-  message: string;
-}
-
 const App: React.FC<AppProps> = ({ accessToken }) => {
   const [userName, setUserName] = useState("");
   const [text, setText] = useState("");
-  const [queue, setQueue] = useState<QueueItem[]>([]);
+  const [queue, setQueue] = useState<string[]>([]);
   const [isPaused, setIsPaused] = useState(false);
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [selectedVoice, setSelectedVoice] = useState<SpeechSynthesisVoice | null>(null);
@@ -87,7 +82,7 @@ const App: React.FC<AppProps> = ({ accessToken }) => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (text.trim()) {
-      setQueue([...queue, { userName, message: text.trim() }]);
+      setQueue([...queue, text.trim()]);
       setText("");
     }
   };
@@ -108,8 +103,8 @@ const App: React.FC<AppProps> = ({ accessToken }) => {
 
   useEffect(() => {
     if (queue.length > 0 && !isPaused) {
-      const currentItem = queue[0];
-      const utterance = new SpeechSynthesisUtterance(`${currentItem.userName} said ${currentItem.message}`);
+      const currentText = queue[0];
+      const utterance = new SpeechSynthesisUtterance(currentText);
       if (selectedVoice) {
         utterance.voice = selectedVoice;
       }
@@ -121,7 +116,7 @@ const App: React.FC<AppProps> = ({ accessToken }) => {
   }, [queue, isPaused, selectedVoice]);
 
   return (
-    <div>
+    <div className="container">
       <h1>Hello, {userName}</h1>
       <form onSubmit={handleSubmit}>
         <select onChange={handleVoiceChange} value={selectedVoice?.name || ''}>
@@ -141,19 +136,15 @@ const App: React.FC<AppProps> = ({ accessToken }) => {
         <span>{text.length}/100</span>
         <button type="submit">Submit</button>
       </form>
-      <div>
+      <div className="queue-container">
         <h2>Queue</h2>
         <ul>
           {queue.map((item, index) => (
-            <li key={index}>{item.userName}: {item.message}</li>
+            <li key={index}>{item}</li>
           ))}
         </ul>
-        {(userName === 'admin' || userName === 'creator') && (
-          <div>
-            <button onClick={handleSkip}>Skip</button>
-            <button onClick={handlePause}>{isPaused ? 'Resume' : 'Pause'}</button>
-          </div>
-        )}
+        <button onClick={handleSkip} disabled={queue.length === 0}>Skip</button>
+        <button onClick={handlePause}>{isPaused ? 'Resume' : 'Pause'}</button>
       </div>
     </div>
   );
