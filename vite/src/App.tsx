@@ -12,6 +12,7 @@ const App: React.FC<AppProps> = ({ accessToken }) => {
   const [isPaused, setIsPaused] = useState(false);
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [selectedVoice, setSelectedVoice] = useState<SpeechSynthesisVoice | null>(null);
+  const [roles, setRoles] = useState<string[]>([]);
   const textBoxRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -44,8 +45,9 @@ const App: React.FC<AppProps> = ({ accessToken }) => {
       const orgMember = result.data.orgMember;
 
       if (orgMember) {
-        const roles = orgMember.roles.map((role: { slug: string }) => role.slug);
+        const fetchedRoles = orgMember.roles.map((role: { slug: string }) => role.slug);
         setUserName(orgMember.name);
+        setRoles(fetchedRoles);
       }
     };
 
@@ -115,9 +117,21 @@ const App: React.FC<AppProps> = ({ accessToken }) => {
     }
   }, [queue, isPaused, selectedVoice]);
 
+  const isAllowedToSkipOrPause = roles.includes('admin') || roles.includes('moderator');
+
   return (
     <div className="container">
-      <h1>Hello, {userName}</h1>
+      <h1>Keshav's TTS</h1>
+      {roles.length > 0 && (
+        <div>
+          <h2>{userName}'s Roles</h2>
+          <ul>
+            {roles.map((role, index) => (
+              <li key={index}>{role}</li>
+            ))}
+          </ul>
+        </div>
+      )}
       <form onSubmit={handleSubmit}>
         <select onChange={handleVoiceChange} value={selectedVoice?.name || ''}>
           {voices.map((voice) => (
@@ -143,8 +157,12 @@ const App: React.FC<AppProps> = ({ accessToken }) => {
             <li key={index}>{item}</li>
           ))}
         </ul>
-        <button onClick={handleSkip} disabled={queue.length === 0}>Skip</button>
-        <button onClick={handlePause}>{isPaused ? 'Resume' : 'Pause'}</button>
+        {isAllowedToSkipOrPause && (
+          <>
+            <button onClick={handleSkip} disabled={queue.length === 0}>Skip</button>
+            <button onClick={handlePause}>{isPaused ? 'Resume' : 'Pause'}</button>
+          </>
+        )}
       </div>
     </div>
   );

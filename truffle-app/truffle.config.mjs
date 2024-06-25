@@ -5,12 +5,13 @@ export default {
   embeds: [
     {
       slug: "my-embed",
-      url: "http://localhost:5173",
+      url: "http://localhost:5173/",
       contentPageType: "youtube",
       iconUrl: "https://cdn.bio/assets/icons/global/light/add_on.svg",
-      windowProps: {
-        title: "My First Embed",
-      },
-    },
-  ],
+      defaultStyles: {
+        width: "100%",
+        height: "300px"
+      }
+    }
+  ]
 };
